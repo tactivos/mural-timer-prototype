@@ -976,7 +976,7 @@ endBtn.addEventListener("click", () => resetToIdle());
 function finishTimer() {
   clearInterval(ticker); ticker = null;
   MUSIC.stop();                           // ticks/alarm already playing; let it ring out
-  pillTime.textContent = "Time's up";
+  pillTime.textContent = "Time’s up";
   pill.classList.add("done");
   setTimeout(() => { resetToIdle(); }, 3200);
 }
