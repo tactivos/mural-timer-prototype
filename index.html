@@ -198,6 +198,7 @@ body.view-participant .topright-participant { display: block; }
 .stepper {
   display: flex; align-items: center; gap: 16px; margin-bottom: 22px;
 }
+.stepper[hidden] { display: none; }   /* let the hidden attribute win over display:flex */
 .step-btn {
   width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
   font-size: 26px; line-height: 1; color: var(--ink); display: flex; align-items: center; justify-content: center;
