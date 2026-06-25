@@ -892,8 +892,8 @@ function startTimer() {
 function tickLoop() {
   if (state.paused) return;
   state.remaining = (endAt - performance.now()) / 1000;
-  // Fade the music out over the final 8 seconds.
-  MUSIC.setFade(state.remaining > 8 ? 1 : Math.max(0, state.remaining / 8));
+  // Fade the music out over the final 10 seconds.
+  MUSIC.setFade(state.remaining > 10 ? 1 : Math.max(0, state.remaining / 10));
   // Start the ticking/alarm clip with 5 seconds left so its alarm lands at 0.
   if (!state.endArmed && state.remaining <= 5) {
     state.endArmed = true;
