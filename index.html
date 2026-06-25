@@ -162,6 +162,24 @@ body {
   border-radius: 8px;
 }
 .step-btn:hover { background: #f1f1f2; }
+
+/* Tooltips (dark bubble + upward caret, shown on hover) */
+[data-tip] { position: relative; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; top: calc(100% + 11px); left: 50%;
+  transform: translateX(-50%) translateY(3px);
+  background: #1c1c1e; color: #fff; font-size: 14px; font-weight: 600;
+  padding: 8px 14px; border-radius: 10px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .12s ease, transform .12s ease; z-index: 60;
+}
+[data-tip]::before {
+  content: ""; position: absolute; top: calc(100% + 5px); left: 50%;
+  transform: translateX(-50%) translateY(3px);
+  border: 6px solid transparent; border-bottom-color: #1c1c1e;
+  opacity: 0; pointer-events: none; transition: opacity .12s ease, transform .12s ease; z-index: 60;
+}
+[data-tip]:hover::after, [data-tip]:hover::before { opacity: 1; transform: translateX(-50%) translateY(0); }
 .step-field {
   flex: 1; text-align: center; border: 2px solid var(--line); border-radius: 12px;
   padding: 8px 14px; font-size: 28px; font-weight: 700; color: var(--ink-soft);
@@ -339,9 +357,9 @@ body {
     </div>
 
     <div class="stepper" id="customStepper" hidden>
-      <button class="step-btn" id="stepMinus">−</button>
+      <button class="step-btn" id="stepMinus" data-tip="Remove a minute">−</button>
       <div class="step-field" id="customDisplay">05:00</div>
-      <button class="step-btn" id="stepPlus">+</button>
+      <button class="step-btn" id="stepPlus" data-tip="Add a minute">+</button>
     </div>
 
     <h3 class="field-label">Music</h3>
