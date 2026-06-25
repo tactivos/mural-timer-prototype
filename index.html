@@ -445,17 +445,17 @@ body.view-participant .topright-participant { display: block; }
 const TRACKS = {
   none:     { name: "No music",  genre: "The sound of silence", icon: "♪",  color: "#5a5a5e" },
   energize: { name: "Energize",  genre: "Funk pop",             icon: "⚡", color: "#e8821e",
-              tempo: 124, wave: "sawtooth", root: 220, scale: [0, 3, 5, 7, 10], swing: 0 },
+              tempo: 124, wave: "sawtooth", root: 220, scale: [0, 3, 5, 7, 10], swing: 0, file: "assets/sounds/energize.wav" },
   focus:    { name: "Focus",     genre: "Minimal electronic",   icon: "🖼", color: "#7b5be0",
               tempo: 104, wave: "sine",     root: 174, scale: [0, 2, 5, 7, 9],  swing: 0 },
   imagine:  { name: "Imagine",   genre: "Lo-fi beats",          icon: "💡", color: "#b3a035",
-              tempo: 82,  wave: "triangle", root: 196, scale: [0, 3, 5, 7, 10], swing: 0.18 },
+              tempo: 82,  wave: "triangle", root: 196, scale: [0, 3, 5, 7, 10], swing: 0.18, file: "assets/sounds/imagine.aiff" },
   flow:     { name: "Flow",      genre: "Indie electronic",     icon: "〜", color: "#3b7de0",
               tempo: 112, wave: "triangle", root: 233, scale: [0, 2, 4, 7, 9],  swing: 0.05 },
   decide:   { name: "Decide",    genre: "Jazz grove",           icon: "✓",  color: "#e0635b",
               tempo: 96,  wave: "sine",     root: 207, scale: [0, 3, 5, 6, 10], swing: 0.22 },
   sprint:   { name: "Sprint",    genre: "Percussive house",     icon: "»",  color: "#b14de0",
-              tempo: 128, wave: "square",   root: 261, scale: [0, 2, 3, 7, 10], swing: 0 },
+              tempo: 128, wave: "square",   root: 261, scale: [0, 2, 3, 7, 10], swing: 0, file: "assets/sounds/sprint.wav" },
 };
 const TRACK_ORDER = ["energize", "focus", "imagine", "flow", "decide", "sprint"];
 
@@ -471,6 +471,9 @@ class MusicEngine {
     this.step = 0;
     this.volume = 0.6;
     this.muted = false;
+    this.audioEl = null;       // <audio> element for real-file tracks
+    this.mediaSrc = null;      // MediaElementSourceNode (routes file into the graph)
+    this.routed = false;       // true when the file is routed through master gain
   }
 
   _ensure() {
@@ -488,34 +491,60 @@ class MusicEngine {
 
   setVolume(v) {                         // v: 0..1
     this.volume = v;
-    if (this.master) {
-      const g = this.muted ? 0 : v;
-      this.master.gain.setTargetAtTime(g, this.ctx.currentTime, 0.05);
-    }
+    if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : v, this.ctx.currentTime, 0.05);
+    if (this.audioEl && !this.routed) this.audioEl.volume = this.muted ? 0 : v;
   }
   setMuted(m) {
     this.muted = m;
     if (this.master) this.master.gain.setTargetAtTime(m ? 0 : this.volume, this.ctx.currentTime, 0.05);
+    if (this.audioEl && !this.routed) this.audioEl.volume = m ? 0 : this.volume;
   }
 
   play(trackKey) {
-    if (!trackKey || trackKey === "none" || !TRACKS[trackKey].tempo) { this.stop(); return; }
+    if (!trackKey || trackKey === "none") { this.stop(); return; }
     this._ensure();
     if (this.ctx.state === "suspended") this.ctx.resume();
-    if (this.current === trackKey && this.timerId) return;
+    if (this.current === trackKey && (this.timerId || this.audioEl)) return;
     this.stop();
     this.current = trackKey;
+    const t = TRACKS[trackKey];
+    if (t.file) { this._playFile(t.file); return; }   // real audio file
+    if (!t.tempo) { this.current = null; return; }     // nothing to play
     this.step = 0;
     this.nextNoteTime = this.ctx.currentTime + 0.06;
     this._scheduler();
   }
 
+  // Play a real audio file, routed through the graph so volume/mute + visualizer work.
+  _playFile(url) {
+    const el = new Audio(url);
+    el.loop = true;
+    this.audioEl = el;
+    this.routed = false;
+    try {
+      this.mediaSrc = this.ctx.createMediaElementSource(el);
+      this.mediaSrc.connect(this.master);
+      this.routed = true;              // graph controls volume; keep element at full
+      el.volume = 1;
+    } catch (e) {
+      el.volume = this.muted ? 0 : this.volume;   // fallback: element controls its own volume
+    }
+    el.play().catch(() => {});
+  }
+
   stop() {
     if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
+    if (this.audioEl) {
+      try { this.audioEl.pause(); } catch (e) {}
+      if (this.mediaSrc) { try { this.mediaSrc.disconnect(); } catch (e) {} this.mediaSrc = null; }
+      this.audioEl.src = "";
+      this.audioEl = null;
+      this.routed = false;
+    }
     this.current = null;
   }
 
-  isPlaying() { return !!this.timerId; }
+  isPlaying() { return !!(this.timerId || this.audioEl); }
 
   // amplitude 0..1 for visualizer
   level() {
