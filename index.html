@@ -165,10 +165,10 @@ body.view-participant .topright-participant { display: block; }
 
 /* ===== Panels ===== */
 .panel {
-  position: fixed; right: 22px; top: 78px; z-index: 25;
+  position: fixed; left: 14px; top: 78px; z-index: 25;
   width: 392px; background: #fff; border-radius: var(--radius);
   box-shadow: var(--panel-shadow); padding: 24px;
-  transform: scale(0.8); transform-origin: top right;
+  transform: scale(0.8); transform-origin: top left;
   animation: panelIn .16s ease;
 }
 @keyframes panelIn { from { opacity: 0; transform: translateY(-6px) scale(0.8);} to {opacity:1; transform: scale(0.8);} }
@@ -885,6 +885,13 @@ dropdown.addEventListener("click", (e) => {
 });
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".music-row")) closeDropdown();
+  // Close the timer panel when clicking outside it (e.g. on the canvas).
+  // The pill is excluded so its own click toggles rather than double-fires.
+  if (!e.target.closest(".panel") && !e.target.closest("#timerPill")) {
+    setupPanel.hidden = true;
+    runPanel.hidden = true;
+    state.panelOpen = false;
+  }
 });
 
 function selectTrack(key) {
@@ -929,11 +936,18 @@ function toggleSetupPanel() {
   const open = setupPanel.hidden;
   setupPanel.hidden = !open;
   runPanel.hidden = true;
+  if (open) positionPanelUnderPill(setupPanel);
 }
 function toggleRunPanel() {
   const open = runPanel.hidden;
   runPanel.hidden = !open;
   setupPanel.hidden = true;
+  if (open) positionPanelUnderPill(runPanel);
+}
+// Anchor the panel's left edge to the timer pill so it sits directly beneath it.
+function positionPanelUnderPill(panel) {
+  const r = pill.getBoundingClientRect();
+  panel.style.left = r.left + "px";
 }
 
 // ============================================================
@@ -1048,13 +1062,15 @@ function restoreTimer() {
   refreshPillIdle();
   pill.classList.remove("collapsed");
   topbarRight.classList.remove("is-collapsed");
-  // After the pill expands back, return to right-anchored layout.
+  runPanel.hidden = true;
+  // After the pill expands back, return to right-anchored layout and open setup
+  // positioned beneath the (now-restored) pill.
   setTimeout(() => {
     topbarRight.style.right = "22px";
     topbarRight.style.left = "auto";
+    positionPanelUnderPill(setupPanel);
+    setupPanel.hidden = false;
   }, 460);
-  setupPanel.hidden = false;   // open setup so they can start a new timer
-  runPanel.hidden = true;
 }
 
 // Clicking the Facilitate toolbar image (while collapsed) brings the timer back.
@@ -1153,6 +1169,7 @@ document.querySelector(".role-toggle").addEventListener("click", (e) => {
 // ---- init
 selectTrack("none");
 refreshPillIdle();
+positionPanelUnderPill(setupPanel);
 setupPanel.hidden = false;   // open on load so the panel is visible
 state.panelOpen = true;
 
