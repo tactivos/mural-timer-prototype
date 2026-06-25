@@ -399,7 +399,7 @@ body.view-participant .topright-participant { display: block; }
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path class="mute-x" d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path class="mute-wave" d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <button class="vol-step" id="volMinus">−</button>
-      <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="10" />
+      <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="20" />
       <button class="vol-step" id="volPlus">+</button>
     </div>
 
@@ -469,7 +469,7 @@ class MusicEngine {
     this.timerId = null;
     this.nextNoteTime = 0;
     this.step = 0;
-    this.volume = 0.1;
+    this.volume = 0.012;   // ≈ sliderToGain(20), the default slider position
     this.muted = false;
     this.audioEl = null;       // <audio> element for real-file tracks
     this.mediaSrc = null;      // MediaElementSourceNode (routes file into the graph)
@@ -693,6 +693,16 @@ const viz = $("#viz");
 
 // ---- helpers
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+
+// Map a 0–100 slider position to an actual gain using a perceptual (dB) curve,
+// so the slider's visual position roughly matches perceived loudness. The bottom
+// of the track is genuinely quiet (≈ -48 dB) rather than "10% linear = still loud".
+function sliderToGain(pct) {
+  pct = clamp(Number(pct), 0, 100);
+  if (pct <= 0) return 0;
+  const minDb = -48, maxDb = 0;
+  return Math.pow(10, (minDb + (maxDb - minDb) * (pct / 100)) / 20);
+}
 function fmt(sec, padMin = true) {
   sec = Math.max(0, Math.round(sec));
   const m = Math.floor(sec / 60), s = sec % 60;
@@ -806,7 +816,7 @@ previewBtn.addEventListener("click", () => {
 function startPreview() {
   state.previewing = true;
   previewBtn.classList.add("playing");
-  MUSIC.setVolume(state.muted ? 0 : volSlider.value / 100);
+  MUSIC.setVolume(state.muted ? 0 : sliderToGain(volSlider.value));
   MUSIC.play(state.track);
 }
 function stopPreview() {
@@ -852,7 +862,7 @@ function startTimer() {
   pill.classList.add("running");
   pill.classList.toggle("music", state.track !== "none");
   if (state.track !== "none") {
-    MUSIC.setVolume(state.muted ? 0 : volSlider.value / 100);
+    MUSIC.setVolume(state.muted ? 0 : sliderToGain(volSlider.value));
     MUSIC.play(state.track);
   }
   runTick();
@@ -928,14 +938,14 @@ function adjustRemaining(delta) {
 // ============================================================
 volSlider.addEventListener("input", () => {
   if (state.muted) toggleMute();
-  MUSIC.setVolume(volSlider.value / 100);
+  MUSIC.setVolume(sliderToGain(volSlider.value));
 });
 $("#volMinus").addEventListener("click", () => nudgeVol(-10));
 $("#volPlus").addEventListener("click", () => nudgeVol(10));
 function nudgeVol(d) {
   volSlider.value = clamp(parseInt(volSlider.value, 10) + d, 0, 100);
   if (state.muted && volSlider.value > 0) toggleMute();
-  MUSIC.setVolume(volSlider.value / 100);
+  MUSIC.setVolume(sliderToGain(volSlider.value));
 }
 muteBtn.addEventListener("click", toggleMute);
 function toggleMute() {
