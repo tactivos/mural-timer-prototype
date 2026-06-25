@@ -515,21 +515,18 @@ class MusicEngine {
     this._scheduler();
   }
 
-  // Play a real audio file, routed through the graph so volume/mute + visualizer work.
+  // Play a real audio file directly via the <audio> element.
+  // NOTE: we deliberately do NOT route this through a MediaElementSource node.
+  // Under file:// Chrome treats each local file as an opaque origin and silences
+  // audio routed through the Web Audio graph. Playing the element directly is
+  // reliable; the visualizer falls back to its wobble animation for these tracks.
   _playFile(url) {
     const el = new Audio(url);
     el.loop = true;
+    el.volume = this.muted ? 0 : this.volume;
     this.audioEl = el;
-    this.routed = false;
-    try {
-      this.mediaSrc = this.ctx.createMediaElementSource(el);
-      this.mediaSrc.connect(this.master);
-      this.routed = true;              // graph controls volume; keep element at full
-      el.volume = 1;
-    } catch (e) {
-      el.volume = this.muted ? 0 : this.volume;   // fallback: element controls its own volume
-    }
-    el.play().catch(() => {});
+    this.routed = false;             // element controls its own volume
+    el.play().catch((err) => console.warn("Audio play failed:", url, err));
   }
 
   stop() {
