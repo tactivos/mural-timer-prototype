@@ -475,6 +475,7 @@ class MusicEngine {
     this.step = 0;
     this.volume = 0.036;   // ≈ sliderToGain(40), the default slider position
     this.muted = false;
+    this.fade = 1;             // 0..1 multiplier for the end-of-timer fade-out
     this.audioEl = null;       // <audio> element for real-file tracks
     this.mediaSrc = null;      // MediaElementSourceNode (routes file into the graph)
     this.routed = false;       // true when the file is routed through master gain
@@ -493,16 +494,15 @@ class MusicEngine {
     this.analyser.connect(this.ctx.destination);
   }
 
-  setVolume(v) {                         // v: 0..1
-    this.volume = v;
-    if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : v, this.ctx.currentTime, 0.05);
-    if (this.audioEl && !this.routed) this.audioEl.volume = this.muted ? 0 : v;
+  // Effective output gain = chosen volume × fade, unless muted.
+  _apply() {
+    const g = this.muted ? 0 : this.volume * this.fade;
+    if (this.master) this.master.gain.setTargetAtTime(g, this.ctx.currentTime, 0.05);
+    if (this.audioEl && !this.routed) this.audioEl.volume = g;
   }
-  setMuted(m) {
-    this.muted = m;
-    if (this.master) this.master.gain.setTargetAtTime(m ? 0 : this.volume, this.ctx.currentTime, 0.05);
-    if (this.audioEl && !this.routed) this.audioEl.volume = m ? 0 : this.volume;
-  }
+  setVolume(v) { this.volume = v; this._apply(); }   // v: 0..1
+  setMuted(m) { this.muted = m; this._apply(); }
+  setFade(f) { this.fade = clamp(f, 0, 1); this._apply(); }
 
   play(trackKey) {
     if (!trackKey || trackKey === "none") { this.stop(); return; }
@@ -527,7 +527,7 @@ class MusicEngine {
   _playFile(url) {
     const el = new Audio(url);
     el.loop = true;
-    el.volume = this.muted ? 0 : this.volume;
+    el.volume = this.muted ? 0 : this.volume * this.fade;
     this.audioEl = el;
     this.routed = false;             // element controls its own volume
     el.play().catch((err) => console.warn("Audio play failed:", url, err));
@@ -627,22 +627,12 @@ class MusicEngine {
   }
 
   // End-of-timer chime (independent of master volume so it's always audible-ish)
-  chime() {
-    this._ensure();
-    if (this.ctx.state === "suspended") this.ctx.resume();
-    const now = this.ctx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.5]; // C E G C
-    notes.forEach((f, i) => {
-      const o = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      const start = now + i * 0.14;
-      o.type = "sine"; o.frequency.value = f;
-      g.gain.setValueAtTime(0, start);
-      g.gain.linearRampToValueAtTime(0.35, start + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0008, start + 0.6);
-      o.connect(g); g.connect(this.ctx.destination); // bypass master/mute
-      o.start(start); o.stop(start + 0.65);
-    });
+  // End-of-timer sound: plays the real file at a fixed ~50% volume,
+  // independent of the music volume/mute so it's always heard.
+  endSound() {
+    const el = new Audio("assets/sounds/timer-done.wav");
+    el.volume = 0.5;
+    el.play().catch((err) => console.warn("End sound failed:", err));
   }
 }
 
@@ -865,6 +855,7 @@ function startTimer() {
   setupPanel.hidden = true;
   pill.classList.add("running");
   pill.classList.toggle("music", state.track !== "none");
+  MUSIC.setFade(1);                       // reset any prior fade-out
   if (state.track !== "none") {
     MUSIC.setVolume(state.muted ? 0 : sliderToGain(volSlider.value));
     MUSIC.play(state.track);
@@ -878,6 +869,8 @@ function startTimer() {
 function tickLoop() {
   if (state.paused) return;
   state.remaining = (endAt - performance.now()) / 1000;
+  // Fade the music out over the final 10 seconds.
+  MUSIC.setFade(state.remaining > 10 ? 1 : Math.max(0, state.remaining / 10));
   if (state.remaining <= 0) { state.remaining = 0; finishTimer(); }
   runTick();
 }
@@ -904,7 +897,7 @@ endBtn.addEventListener("click", () => resetToIdle());
 function finishTimer() {
   clearInterval(ticker); ticker = null;
   MUSIC.stop();
-  MUSIC.chime();
+  MUSIC.endSound();
   pillTime.textContent = "Time's up!";
   pill.classList.add("done");
   setTimeout(() => { resetToIdle(); }, 3200);
@@ -914,6 +907,7 @@ function resetToIdle() {
   clearInterval(ticker); ticker = null;
   stopViz();
   MUSIC.stop();
+  MUSIC.setFade(1);                       // clear fade in case ended mid-fade
   state.running = false;
   state.paused = false;
   pauseBtn.textContent = "Pause";
