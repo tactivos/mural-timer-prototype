@@ -471,6 +471,7 @@ const TRACKS = {
               tempo: 128, wave: "square",   root: 261, scale: [0, 2, 3, 7, 10], swing: 0, file: "assets/sounds/sprint.wav" },
 };
 const TRACK_ORDER = ["energize", "focus", "imagine", "flow", "decide", "sprint"];
+const END_SOUND_VOLUME = 0.5;   // fixed ~50% level for the end-of-timer clip (independent of user volume)
 
 class MusicEngine {
   constructor() {
@@ -637,13 +638,15 @@ class MusicEngine {
   }
 
   // End-of-timer chime (independent of master volume so it's always audible-ish)
-  // End-of-timer sound: a 6s clip (5s ticking + alarm) started with 5s left,
-  // at a fixed ~50% volume, independent of the music volume/mute. Stored so it
-  // can pause/resume in lock-step with the timer.
+  // End-of-timer sound: a 6s clip (5s ticking + alarm) started with 5s left.
+  // Always plays at a FIXED level (END_SOUND_VOLUME), fully independent of the
+  // user's volume slider, mute, and the fade-out — it's a separate element that
+  // none of setVolume/setMuted/setFade ever touch. Stored so it can pause/resume
+  // in lock-step with the timer.
   endSound() {
     this.stopEndSound();
     const el = new Audio("assets/sounds/timer-finished-with-ticks.wav");
-    el.volume = 0.5;
+    el.volume = END_SOUND_VOLUME;
     this.endEl = el;
     el.play().catch((err) => console.warn("End sound failed:", err));
   }
