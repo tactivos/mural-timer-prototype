@@ -399,7 +399,7 @@ body.view-participant .topright-participant { display: block; }
         <svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path class="mute-x" d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path class="mute-wave" d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <button class="vol-step" id="volMinus">−</button>
-      <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="60" />
+      <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="20" />
       <button class="vol-step" id="volPlus">+</button>
     </div>
 
@@ -469,7 +469,7 @@ class MusicEngine {
     this.timerId = null;
     this.nextNoteTime = 0;
     this.step = 0;
-    this.volume = 0.6;
+    this.volume = 0.2;
     this.muted = false;
     this.audioEl = null;       // <audio> element for real-file tracks
     this.mediaSrc = null;      // MediaElementSourceNode (routes file into the graph)
