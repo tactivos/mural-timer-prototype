@@ -947,7 +947,7 @@ function tickLoop() {
     state.endArmed = false;               // time was extended back up — re-arm
     MUSIC.stopEndSound();
   }
-  if (state.remaining <= 0) { state.remaining = 0; finishTimer(); }
+  if (state.remaining <= 0) { state.remaining = 0; finishTimer(); return; }
   runTick();
 }
 
