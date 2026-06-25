@@ -489,6 +489,8 @@ class MusicEngine {
     this.volume = 0.036;   // ≈ sliderToGain(40), the default slider position
     this.muted = false;
     this.fade = 1;             // 0..1 multiplier for the end-of-timer fade-out
+    this.pauseGain = 1;        // 0..1 multiplier for the light pause/resume fade
+    this.fadeTimer = null;     // interval driving the pause/resume fade
     this.endEl = null;         // <audio> element for the end-of-timer ticks/alarm
     this.audioEl = null;       // <audio> element for real-file tracks
     this.mediaSrc = null;      // MediaElementSourceNode (routes file into the graph)
@@ -508,15 +510,53 @@ class MusicEngine {
     this.analyser.connect(this.ctx.destination);
   }
 
-  // Effective output gain = chosen volume × fade, unless muted.
+  // Effective output gain = chosen volume × end-fade × pause-fade, unless muted.
   _apply() {
-    const g = this.muted ? 0 : this.volume * this.fade;
+    const g = this.muted ? 0 : this.volume * this.fade * this.pauseGain;
     if (this.master) this.master.gain.setTargetAtTime(g, this.ctx.currentTime, 0.05);
     if (this.audioEl && !this.routed) this.audioEl.volume = g;
   }
   setVolume(v) { this.volume = v; this._apply(); }   // v: 0..1
   setMuted(m) { this.muted = m; this._apply(); }
   setFade(f) { this.fade = clamp(f, 0, 1); this._apply(); }
+
+  // Light fade-out then pause, preserving playback position. Resume fades back in
+  // and continues from where it left off (file tracks resume via the <audio>
+  // element's saved currentTime; synth tracks restart the loop in place).
+  pauseMusic() {
+    if (!this.ctx) return;
+    this._fadeTo(0, 350, () => {
+      if (this.audioEl) { try { this.audioEl.pause(); } catch (e) {} }
+      if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
+    });
+  }
+  resumeMusic() {
+    if (!this.ctx) return;
+    if (this.ctx.state === "suspended") this.ctx.resume();
+    if (this.audioEl) {
+      this.audioEl.play().catch(() => {});
+    } else if (this.current && TRACKS[this.current] && TRACKS[this.current].tempo) {
+      this.nextNoteTime = this.ctx.currentTime + 0.05;
+      this._scheduler();
+    }
+    this._fadeTo(1, 350);
+  }
+  _fadeTo(target, ms, onDone) {
+    if (this.fadeTimer) { clearInterval(this.fadeTimer); this.fadeTimer = null; }
+    const start = this.pauseGain;
+    const t0 = performance.now();
+    this.fadeTimer = setInterval(() => {
+      const p = Math.min(1, (performance.now() - t0) / ms);
+      this.pauseGain = start + (target - start) * p;
+      this._apply();
+      if (p >= 1) {
+        clearInterval(this.fadeTimer); this.fadeTimer = null;
+        this.pauseGain = target;
+        this._apply();
+        if (onDone) onDone();
+      }
+    }, 30);
+  }
 
   play(trackKey) {
     if (!trackKey || trackKey === "none") { this.stop(); return; }
@@ -541,7 +581,7 @@ class MusicEngine {
   _playFile(url) {
     const el = new Audio(url);
     el.loop = true;
-    el.volume = this.muted ? 0 : this.volume * this.fade;
+    el.volume = this.muted ? 0 : this.volume * this.fade * this.pauseGain;
     this.audioEl = el;
     this.routed = false;             // element controls its own volume
     el.play().catch((err) => console.warn("Audio play failed:", url, err));
@@ -549,6 +589,8 @@ class MusicEngine {
 
   stop() {
     if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
+    if (this.fadeTimer) { clearInterval(this.fadeTimer); this.fadeTimer = null; }
+    this.pauseGain = 1;
     if (this.audioEl) {
       try { this.audioEl.pause(); } catch (e) {}
       if (this.mediaSrc) { try { this.mediaSrc.disconnect(); } catch (e) {} this.mediaSrc = null; }
@@ -920,11 +962,11 @@ pauseBtn.addEventListener("click", () => {
   pauseBtn.textContent = state.paused ? "Resume" : "Pause";
   pill.classList.toggle("paused", state.paused);
   if (state.paused) {
-    MUSIC.stop();
-    MUSIC.pauseEndSound();                // keep the ticks in sync with the timer
+    MUSIC.pauseMusic();                    // light fade-out, keep position
+    MUSIC.pauseEndSound();                 // keep the ticks in sync with the timer
   } else {
     endAt = performance.now() + state.remaining * 1000;
-    if (state.track !== "none") MUSIC.play(state.track);
+    MUSIC.resumeMusic();                   // fade back in from where it left off
     MUSIC.resumeEndSound();
   }
 });
