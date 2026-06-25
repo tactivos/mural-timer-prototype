@@ -1038,11 +1038,8 @@ function collapseTimer() {
   pauseBtn.textContent = "Pause";
   runPanel.hidden = true;
 
-  // Pin the bar's current left edge so the cluster slides LEFT as the pill shrinks.
-  const rect = topbarRight.getBoundingClientRect();
-  topbarRight.style.left = rect.left + "px";
-  topbarRight.style.right = "auto";
-
+  // Bar stays right-anchored: the pill shrinks closed while Facilitate + the
+  // rest of the toolbar hold their position.
   pill.classList.add("collapsed");
   topbarRight.classList.add("is-collapsed");
   state.collapsed = true;
@@ -1063,11 +1060,8 @@ function restoreTimer() {
   pill.classList.remove("collapsed");
   topbarRight.classList.remove("is-collapsed");
   runPanel.hidden = true;
-  // After the pill expands back, return to right-anchored layout and open setup
-  // positioned beneath the (now-restored) pill.
+  // After the pill expands back, open setup positioned beneath the restored pill.
   setTimeout(() => {
-    topbarRight.style.right = "22px";
-    topbarRight.style.left = "auto";
     positionPanelUnderPill(setupPanel);
     setupPanel.hidden = false;
   }, 460);
