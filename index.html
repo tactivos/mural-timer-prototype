@@ -101,6 +101,9 @@ body.view-participant .topright-participant { display: block; }
 .timer-pill.paused .ic-pause-timer { display: block; }
 .timer-pill.done { background: #1c1c1e; }
 .timer-pill.done .pill-time { font-size: 16px; }
+/* done: black pill, stopwatch icon (not music note/visualizer) + "Time's up" */
+.timer-pill.running.done .pill-music { display: none; }
+.timer-pill.running.done .ic-stopwatch { display: block; }
 .pill-time {
   font-size: 17px; font-weight: 700; letter-spacing: .5px;
   font-variant-numeric: tabular-nums;
@@ -931,7 +934,7 @@ endBtn.addEventListener("click", () => resetToIdle());
 function finishTimer() {
   clearInterval(ticker); ticker = null;
   MUSIC.stop();                           // ticks/alarm already playing; let it ring out
-  pillTime.textContent = "Time's up!";
+  pillTime.textContent = "Time's up";
   pill.classList.add("done");
   setTimeout(() => { resetToIdle(); }, 3200);
 }
