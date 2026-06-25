@@ -83,10 +83,18 @@ body.view-participant .topright-participant { display: block; }
   display: flex; align-items: center; gap: 9px;
   background: var(--red); color: #fff; border: none;
   border-radius: 10px; padding: 7px 15px 7px 11px; cursor: pointer;
-  font-family: var(--font); transition: background .15s;
-  min-width: 104px;
+  font-family: var(--font);
+  transition: background .15s, max-width .45s ease, opacity .4s ease,
+              padding .45s ease, margin .45s ease;
+  min-width: 104px; max-width: 320px;
 }
 .timer-pill:hover { background: var(--red-bright); }
+/* collapse the pill away (after Time's up) — toolbar slides over to fill the gap */
+.timer-pill.collapsed {
+  max-width: 0; min-width: 0; padding-left: 0; padding-right: 0;
+  margin-right: -12px; opacity: 0; overflow: hidden; pointer-events: none;
+}
+.topbar-right.is-collapsed .topright-img { cursor: pointer; }
 .pill-icon { display: flex; align-items: center; }
 .pill-music { display: none; align-items: center; gap: 7px; }
 /* show the music note + visualizer only when running WITH a track */
@@ -753,6 +761,7 @@ const state = {
 // ---- elements
 const pill = $("#timerPill");
 const pillTime = $("#pillTime");
+const topbarRight = document.querySelector(".topbar-right");
 const setupPanel = $("#setupPanel");
 const runPanel = $("#runPanel");
 const durationSeg = $("#durationSeg");
@@ -1000,8 +1009,58 @@ function finishTimer() {
   MUSIC.stop();                           // ticks/alarm already playing; let it ring out
   pillTime.textContent = "Time’s up";
   pill.classList.add("done");
-  setTimeout(() => { resetToIdle(); }, 3200);
+  setTimeout(() => { collapseTimer(); }, 3200);
 }
+
+// After "Time's up", slide the toolbar over and collapse the pill away (mirroring
+// the real product). Clicking the Facilitate image restores the timer.
+function collapseTimer() {
+  clearInterval(ticker); ticker = null;
+  stopViz();
+  MUSIC.stop(); MUSIC.setFade(1); MUSIC.stopEndSound();
+  state.endArmed = false;
+  state.running = false;
+  state.paused = false;
+  pauseBtn.textContent = "Pause";
+  runPanel.hidden = true;
+
+  // Pin the bar's current left edge so the cluster slides LEFT as the pill shrinks.
+  const rect = topbarRight.getBoundingClientRect();
+  topbarRight.style.left = rect.left + "px";
+  topbarRight.style.right = "auto";
+
+  pill.classList.add("collapsed");
+  topbarRight.classList.add("is-collapsed");
+  state.collapsed = true;
+
+  // Once it has slid away, quietly reset the (hidden) pill back to idle.
+  setTimeout(() => {
+    pill.classList.remove("running", "done", "music", "paused");
+    state.remaining = state.durationSec;
+    refreshPillIdle();
+  }, 480);
+}
+
+function restoreTimer() {
+  if (!state.collapsed) return;
+  state.collapsed = false;
+  pill.classList.remove("running", "done", "music", "paused");
+  refreshPillIdle();
+  pill.classList.remove("collapsed");
+  topbarRight.classList.remove("is-collapsed");
+  // After the pill expands back, return to right-anchored layout.
+  setTimeout(() => {
+    topbarRight.style.right = "22px";
+    topbarRight.style.left = "auto";
+  }, 460);
+  setupPanel.hidden = false;   // open setup so they can start a new timer
+  runPanel.hidden = true;
+}
+
+// Clicking the Facilitate toolbar image (while collapsed) brings the timer back.
+topbarRight.addEventListener("click", (e) => {
+  if (state.collapsed && e.target.closest(".topright-img")) restoreTimer();
+});
 
 function resetToIdle() {
   clearInterval(ticker); ticker = null;
