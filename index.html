@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mural Timer — Prototype</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ===== Canvas backdrop (static chrome) ===== -->
+  <div class="canvas" aria-hidden="true"></div>
+
+  <!-- Left tool rail -->
+  <nav class="rail" aria-hidden="true">
+    <div class="rail-logo">
+      <svg viewBox="0 0 32 24" width="26" height="20"><path d="M2 22V6c0-3 4-3 4 0v10c0-3 4-3 4 0M14 22V2c0-3 4-3 4 0v18M26 22V6c0-3 4-3 4 0v10" fill="none" stroke="url(#g)" stroke-width="3.5" stroke-linecap="round"/><defs><linearGradient id="g" x1="0" y1="0" x2="32" y2="0"><stop offset="0" stop-color="#ff5b4a"/><stop offset=".5" stop-color="#b14de0"/><stop offset="1" stop-color="#2f7dd1"/></linearGradient></defs></svg>
+    </div>
+    <button class="rail-btn">▦</button>
+    <button class="rail-btn">▤</button>
+    <button class="rail-btn">T</button>
+    <button class="rail-btn">⇲</button>
+    <button class="rail-btn">✎</button>
+    <button class="rail-btn rail-active">⠿</button>
+    <button class="rail-btn">⚇</button>
+    <button class="rail-btn">▦</button>
+    <button class="rail-btn">✐</button>
+    <button class="rail-btn">▢</button>
+    <button class="rail-btn">↗</button>
+  </nav>
+
+  <!-- Top-left mural title -->
+  <div class="topbar-left" aria-hidden="true">
+    <span class="mini-logo">
+      <svg viewBox="0 0 32 24" width="22" height="16"><path d="M2 22V6c0-3 4-3 4 0v10c0-3 4-3 4 0M14 22V2c0-3 4-3 4 0v18M26 22V6c0-3 4-3 4 0v10" fill="none" stroke="url(#g2)" stroke-width="3.5" stroke-linecap="round"/><defs><linearGradient id="g2" x1="0" y1="0" x2="32" y2="0"><stop offset="0" stop-color="#ff5b4a"/><stop offset=".5" stop-color="#b14de0"/><stop offset="1" stop-color="#2f7dd1"/></linearGradient></defs></svg>
+    </span>
+    <span class="mural-title">Untitled mural</span>
+    <span class="chev">⌄</span>
+    <span class="divider"></span>
+    <span class="tb-icon">↺</span>
+    <span class="tb-icon dim">↻</span>
+    <span class="tb-icon">⚡</span>
+  </div>
+
+  <!-- Top-right cluster -->
+  <header class="topbar-right">
+    <!-- The functional timer pill -->
+    <button id="timerPill" class="timer-pill" aria-haspopup="dialog">
+      <span class="pill-icon" id="pillIcon">
+        <!-- stopwatch (idle) -->
+        <svg class="ic-stopwatch" viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="13" r="8" fill="none" stroke="#fff" stroke-width="2"/><path d="M12 13l3-3M9 2h6M12 5V2" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+        <!-- music note + visualizer (running) -->
+        <span class="pill-music" id="pillMusic">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 17V5l10-2v12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="17" r="2.4" fill="#fff"/><circle cx="17" cy="15" r="2.4" fill="#fff"/></svg>
+          <span class="viz" id="viz"><i></i><i></i><i></i><i></i><i></i></span>
+        </span>
+      </span>
+      <span class="pill-time" id="pillTime">05:00</span>
+    </button>
+
+    <button class="tb-pill"><span class="facil-ico">🧑‍🏫</span> Facilitate</button>
+    <span class="divider"></span>
+    <button class="tb-round">▤</button>
+    <button class="tb-round">💬</button>
+    <button class="tb-round">👤</button>
+    <span class="divider"></span>
+    <button class="tb-round help">?</button>
+    <span class="avatar"></span>
+  </header>
+
+  <!-- ===== Setup panel (idle) ===== -->
+  <section id="setupPanel" class="panel" role="dialog" aria-label="Timer setup" hidden>
+    <div class="panel-head">
+      <h2>Timer</h2>
+      <button class="panel-close" data-close>✕</button>
+    </div>
+
+    <h3 class="field-label">Duration</h3>
+    <div class="seg" id="durationSeg">
+      <button class="seg-btn" data-dur="2">2 mins</button>
+      <button class="seg-btn is-active" data-dur="5">5 mins</button>
+      <button class="seg-btn" data-dur="10">10 mins</button>
+      <button class="seg-btn" data-dur="custom">Custom</button>
+    </div>
+
+    <div class="stepper" id="customStepper" hidden>
+      <button class="step-btn" id="stepMinus">−</button>
+      <div class="step-field" id="customDisplay">05:00</div>
+      <button class="step-btn" id="stepPlus">+</button>
+    </div>
+
+    <h3 class="field-label">Music</h3>
+    <div class="music-row">
+      <div class="select" id="musicSelect" tabindex="0" role="button" aria-haspopup="listbox">
+        <span class="select-icon" id="selIcon"><span class="track-dot dot-none">♪</span></span>
+        <span class="select-label" id="selLabel">No music</span>
+        <span class="select-chev">⌄</span>
+      </div>
+      <button class="preview-btn" id="previewBtn" disabled aria-label="Preview music">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path class="wave" d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <!-- dropdown -->
+      <ul class="dropdown" id="musicDropdown" role="listbox" hidden></ul>
+    </div>
+
+    <button class="btn-primary" id="startBtn">Start timer</button>
+  </section>
+
+  <!-- ===== Running control panel ===== -->
+  <section id="runPanel" class="panel" role="dialog" aria-label="Timer controls" hidden>
+    <div class="panel-head">
+      <h2>Your volume</h2>
+      <button class="panel-close" data-close>✕</button>
+    </div>
+    <p class="panel-note">Timer music plays for everyone currently in this mural. Each person can control their own volume.</p>
+
+    <div class="vol-row">
+      <button class="vol-mute" id="muteBtn" aria-label="Mute">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path class="mute-x" d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path class="mute-wave" d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="vol-step" id="volMinus">−</button>
+      <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="60" />
+      <button class="vol-step" id="volPlus">+</button>
+    </div>
+
+    <!-- Facilitator-only -->
+    <div class="facil-only" id="facilControls">
+      <h3 class="field-label big">Adjust time</h3>
+      <div class="stepper big" id="adjustStepper">
+        <button class="step-btn" id="adjMinus">−</button>
+        <div class="step-time" id="adjTime">4:58</div>
+        <button class="step-btn" id="adjPlus">+</button>
+      </div>
+      <div class="run-actions">
+        <button class="btn-secondary" id="pauseBtn">Pause</button>
+        <button class="btn-primary danger" id="endBtn">End</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom-center reactions/avatars -->
+  <div class="bottom-bar" aria-hidden="true">
+    <span class="bb-emoji">🙂</span>
+    <span class="bb-div"></span>
+    <span class="bb-av a1"></span>
+    <span class="bb-av a2"></span>
+    <span class="bb-av a3"></span>
+    <span class="bb-av a4"></span>
+    <span class="bb-av a5"></span>
+    <span class="bb-more">›</span>
+  </div>
+
+  <!-- Bottom-right zoom -->
+  <div class="zoom-bar" aria-hidden="true">
+    <span class="z-icon">✋</span>
+    <span class="z-icon">🖱</span>
+    <span class="z-icon">⊕</span>
+    <span class="z-div"></span>
+    <span class="z-minus">−</span>
+    <span class="z-pct">100%</span>
+    <span class="z-plus">+</span>
+    <span class="z-div"></span>
+    <span class="z-fit">▱</span>
+  </div>
+
+  <!-- Dev role toggle -->
+  <div class="role-toggle">
+    <span class="role-label">View as</span>
+    <button class="role-btn is-active" data-role="facilitator">Facilitator</button>
+    <button class="role-btn" data-role="participant">Participant</button>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
