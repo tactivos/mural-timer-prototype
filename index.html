@@ -739,8 +739,8 @@ durationSeg.addEventListener("click", (e) => {
   const v = btn.dataset.dur;
   if (v === "custom") {
     state.isCustom = true;
+    state.customSec = state.durationSec;   // seed from the most recently selected duration
     customStepper.hidden = false;
-    state.durationSec = state.customSec;
     customDisplay.textContent = fmt(state.customSec);
   } else {
     state.isCustom = false;
