@@ -964,9 +964,11 @@ startBtn.addEventListener("click", startTimer);
 function startTimer() {
   state.running = true;
   state.paused = false;
+  state.finished = false;
   state.remaining = state.durationSec;
   stopPreview();
   setupPanel.hidden = true;
+  applyPillVisibility();        // ensure the pill is shown while running
   pill.classList.add("running");
   pill.classList.toggle("music", state.track !== "none");
   MUSIC.setFade(1);                       // reset any prior fade-out
@@ -1044,9 +1046,8 @@ function collapseTimer() {
 
   // Bar stays right-anchored: the pill shrinks closed while Facilitate + the
   // rest of the toolbar hold their position.
-  pill.classList.add("collapsed");
-  topbarRight.classList.add("is-collapsed");
-  state.collapsed = true;
+  state.finished = true;     // awaiting restore via the Facilitate click
+  applyPillVisibility();
 
   // Once it has slid away, quietly reset the (hidden) pill back to idle.
   setTimeout(() => {
@@ -1057,12 +1058,11 @@ function collapseTimer() {
 }
 
 function restoreTimer() {
-  if (!state.collapsed) return;
-  state.collapsed = false;
+  if (!state.finished) return;
+  state.finished = false;
   pill.classList.remove("running", "done", "music", "paused");
   refreshPillIdle();
-  pill.classList.remove("collapsed");
-  topbarRight.classList.remove("is-collapsed");
+  applyPillVisibility();
   runPanel.hidden = true;
   // After the pill expands back, open setup positioned beneath the restored pill.
   setTimeout(() => {
@@ -1071,9 +1071,18 @@ function restoreTimer() {
   }, 460);
 }
 
-// Clicking the Facilitate toolbar image (while collapsed) brings the timer back.
+// Hide the timer pill for participants when no timer is running, and during the
+// facilitator's post-finish collapsed state. The toolbar stays right-anchored.
+function applyPillVisibility() {
+  const hide = state.finished || (state.role === "participant" && !state.running);
+  pill.classList.toggle("collapsed", hide);
+  topbarRight.classList.toggle("is-collapsed", state.finished);  // restore cursor only post-finish
+  if (hide) setupPanel.hidden = true;
+}
+
+// Clicking the Facilitate toolbar image (after a timer finishes) brings it back.
 topbarRight.addEventListener("click", (e) => {
-  if (state.collapsed && e.target.closest(".topright-img")) restoreTimer();
+  if (state.finished && e.target.closest(".topright-img")) restoreTimer();
 });
 
 function resetToIdle() {
@@ -1085,11 +1094,13 @@ function resetToIdle() {
   state.endArmed = false;
   state.running = false;
   state.paused = false;
+  state.finished = false;
   pauseBtn.textContent = "Pause";
   pill.classList.remove("running", "done", "music", "paused");
   runPanel.hidden = true;
   state.remaining = state.durationSec;
   refreshPillIdle();
+  applyPillVisibility();        // hide again if participant + idle
 }
 
 function refreshPillIdle() {
@@ -1163,13 +1174,16 @@ document.querySelector(".role-toggle").addEventListener("click", (e) => {
   document.querySelectorAll(".role-btn").forEach((b) => b.classList.toggle("is-active", b === btn));
   facilControls.classList.toggle("hidden", state.role !== "facilitator");
   document.body.classList.toggle("view-participant", state.role === "participant");
+  applyPillVisibility();        // participants don't see the timer unless one is running
 });
 
 // ---- init
+state.finished = false;
 selectTrack("none");
 refreshPillIdle();
+applyPillVisibility();        // hide the pill if we start in participant view
 positionPanelUnderPill(setupPanel);
-setupPanel.hidden = false;   // open on load so the panel is visible
+if (!pill.classList.contains("collapsed")) setupPanel.hidden = false;   // open panel on load (facilitator)
 state.panelOpen = true;
 
   </script>
