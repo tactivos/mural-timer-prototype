@@ -118,6 +118,9 @@ body.view-participant .topright-participant { display: block; }
   min-width: 104px; max-width: 320px;
 }
 .timer-pill:hover { background: var(--red-bright); }
+/* locked: participant view with no music — nothing to control */
+.timer-pill.pill-locked { cursor: default; }
+.timer-pill.pill-locked:hover { background: var(--red); }
 /* collapse the pill away (after Time's up) — toolbar slides over to fill the gap */
 .timer-pill.collapsed {
   max-width: 0; min-width: 0; padding-left: 0; padding-right: 0;
@@ -1006,8 +1009,13 @@ function stopPreview() {
 //  Pill / panel open-close
 // ============================================================
 pill.addEventListener("click", () => {
-  if (state.running) toggleRunPanel();
-  else toggleSetupPanel();
+  if (state.running) {
+    // Participants have nothing to control when no music is playing.
+    if (state.role === "participant" && state.track === "none") return;
+    toggleRunPanel();
+  } else {
+    toggleSetupPanel();
+  }
 });
 document.querySelectorAll("[data-close]").forEach((b) =>
   b.addEventListener("click", () => { setupPanel.hidden = true; runPanel.hidden = true; state.panelOpen = false; })
@@ -1153,6 +1161,9 @@ function applyPillVisibility() {
   const hide = state.finished || (state.role === "participant" && !state.running);
   pill.classList.toggle("collapsed", hide);
   topbarRight.classList.toggle("is-collapsed", state.finished);  // restore cursor only post-finish
+  // Participant + running + no music = nothing to control, so lock the pill.
+  const locked = state.role === "participant" && state.running && state.track === "none";
+  pill.classList.toggle("pill-locked", locked);
   if (hide) setupPanel.hidden = true;
 }
 
