@@ -29,6 +29,35 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ===== Password gate ===== */
+.pw-gate {
+  position: fixed; inset: 0; z-index: 1000;
+  background: #f0f0ee;
+  background-image: radial-gradient(circle, #d8d8da 1.3px, transparent 1.4px);
+  background-size: 30px 30px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pw-gate.unlocked { display: none; }
+.pw-card {
+  width: 380px; max-width: 90vw; background: #fff; border-radius: 18px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.18); padding: 36px 32px; text-align: center;
+}
+.pw-logo { display: flex; justify-content: center; margin-bottom: 16px; }
+.pw-title { font-size: 21px; font-weight: 700; margin: 0 0 6px; }
+.pw-sub { color: #666; font-size: 14px; line-height: 1.45; margin: 0 0 22px; }
+.pw-row { display: flex; gap: 10px; }
+.pw-input {
+  flex: 1; border: 2px solid var(--line); border-radius: 11px; padding: 11px 14px;
+  font-size: 16px; font-family: var(--font); outline: none;
+}
+.pw-input:focus { border-color: #9a9aa0; }
+.pw-btn {
+  border: none; background: var(--red); color: #fff; font-weight: 700; font-size: 15px;
+  padding: 11px 20px; border-radius: 11px; cursor: pointer; font-family: var(--font);
+}
+.pw-btn:hover { background: var(--red-bright); }
+.pw-error { color: var(--red); font-size: 13px; font-weight: 600; margin: 16px 0 0; }
+
 /* ===== Canvas backdrop ===== */
 .canvas {
   position: fixed; inset: 0;
@@ -363,6 +392,22 @@ body.view-participant .topright-participant { display: block; }
   </style>
 </head>
 <body>
+  <!-- ===== Soft password gate (client-side; deters casual access, not real security) ===== -->
+  <div id="pwGate" class="pw-gate">
+    <form id="pwForm" class="pw-card" autocomplete="off">
+      <span class="pw-logo">
+        <svg viewBox="0 0 32 24" width="34" height="26"><path d="M2 22V6c0-3 4-3 4 0v10c0-3 4-3 4 0M14 22V2c0-3 4-3 4 0v18M26 22V6c0-3 4-3 4 0v10" fill="none" stroke="url(#pwg)" stroke-width="3.5" stroke-linecap="round"/><defs><linearGradient id="pwg" x1="0" y1="0" x2="32" y2="0"><stop offset="0" stop-color="#ff5b4a"/><stop offset=".5" stop-color="#b14de0"/><stop offset="1" stop-color="#2f7dd1"/></linearGradient></defs></svg>
+      </span>
+      <h1 class="pw-title">Mural timer prototype</h1>
+      <p class="pw-sub">This is an internal preview. Enter the password to continue.</p>
+      <div class="pw-row">
+        <input id="pwInput" type="password" class="pw-input" placeholder="Password" autocomplete="off" />
+        <button type="submit" class="pw-btn">Enter</button>
+      </div>
+      <p id="pwError" class="pw-error" hidden>Incorrect password — try again.</p>
+    </form>
+  </div>
+
   <!-- ===== Canvas backdrop (static chrome) ===== -->
   <div class="canvas" aria-hidden="true"></div>
 
@@ -482,6 +527,40 @@ body.view-participant .topright-participant { display: block; }
     <button class="role-btn" data-role="participant">Participant</button>
   </div>
   <script>
+/* ============================================================
+   Soft password gate — client-side only, NOT real security.
+   Deters casual visitors; anyone technical can bypass it. The password
+   is stored as a portable hash (not plaintext) so it isn't sitting in the
+   public repo verbatim. Unlock is remembered per-browser via localStorage.
+   ============================================================ */
+(function () {
+  const GATE_HASH = "b1d7f5a6";          // hash of the shared password
+  const KEY = "mtp-unlocked";
+  const gate = document.getElementById("pwGate");
+  const form = document.getElementById("pwForm");
+  const input = document.getElementById("pwInput");
+  const error = document.getElementById("pwError");
+  function gateHash(str) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h.toString(16);
+  }
+  function unlock() { gate.classList.add("unlocked"); }
+  try { if (localStorage.getItem(KEY) === "1") unlock(); else input.focus(); }
+  catch (e) { input.focus(); }
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (gateHash(input.value.trim().toLowerCase()) === GATE_HASH) {
+      try { localStorage.setItem(KEY, "1"); } catch (e) {}
+      unlock();
+    } else {
+      error.hidden = false;
+      input.value = "";
+      input.focus();
+    }
+  });
+})();
+
 /* ============================================================
    Synthesized music engine (Web Audio API)
    No binary files needed — each "track" is generated procedurally
