@@ -235,20 +235,20 @@ body.view-participant .topright-participant { display: block; }
 /* Music row */
 .music-row { position: relative; display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
 .select {
-  flex: 1; display: flex; align-items: center; gap: 12px; cursor: pointer;
-  border: 2px solid var(--line); border-radius: 12px; padding: 8px 14px;
+  flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer;
+  border: 2px solid var(--line); border-radius: 12px; padding: 7px 12px;
   outline: none;
 }
 .select:focus, .select.open { border-color: #9a9aa0; }
 .select-icon { display: flex; }
-.select-label { flex: 1; font-size: 18px; font-weight: 600; }
-.select-chev { color: var(--muted); font-size: 15px; }
+.select-label { flex: 1; font-size: 16px; font-weight: 600; }
+.select-chev { color: var(--muted); font-size: 14px; }
 .track-dot {
-  width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 18px; flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px; flex-shrink: 0;
 }
 .dot-none { background: #5a5a5e; }
-.track-dot svg { width: 22px; height: 22px; display: block; }
+.track-dot svg { width: 18px; height: 18px; display: block; }
 .ic-stopwatch { width: 17px; height: 17px; }
 .pill-note { width: 16px; height: 16px; color: #fff; }
 
@@ -265,15 +265,15 @@ body.view-participant .topright-participant { display: block; }
 
 /* Dropdown */
 .dropdown {
-  position: absolute; top: 48px; left: 0; width: calc(100% - 58px);
+  position: absolute; top: 42px; left: 0; width: calc(100% - 58px);
   background: #fff; border-radius: 14px; box-shadow: var(--panel-shadow);
   list-style: none; margin: 0; padding: 8px; max-height: 360px; overflow-y: auto; z-index: 5;
 }
-.dd-item { display: flex; align-items: center; gap: 14px; padding: 10px; border-radius: 10px; cursor: pointer; }
+.dd-item { display: flex; align-items: center; gap: 11px; padding: 8px; border-radius: 10px; cursor: pointer; }
 .dd-item:hover { background: #f4f4f5; }
 .dd-text { display: flex; flex-direction: column; }
-.dd-name { font-size: 18px; font-weight: 600; line-height: 1.2; }
-.dd-genre { font-size: 14px; color: var(--muted); }
+.dd-name { font-size: 16px; font-weight: 600; line-height: 1.2; }
+.dd-genre { font-size: 13px; color: var(--muted); }
 .dd-check { margin-left: auto; color: var(--red); font-weight: 700; display: none; }
 .dd-item.selected .dd-check { display: block; }
 
