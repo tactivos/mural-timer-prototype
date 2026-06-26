@@ -1,0 +1,4 @@
+# Static prototype — no build step. Serves index.html from the project root.
+[build]
+  publish = "."
+  command = ""
