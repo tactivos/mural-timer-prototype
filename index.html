@@ -1022,7 +1022,7 @@ pauseBtn.addEventListener("click", () => {
   }
 });
 
-endBtn.addEventListener("click", () => resetToIdle());
+endBtn.addEventListener("click", () => collapseTimer());
 
 function finishTimer() {
   clearInterval(ticker); ticker = null;
