@@ -347,6 +347,10 @@ body.view-participant .topright-participant { display: block; }
 
 .run-actions { display: flex; gap: 14px; margin-top: 4px; }
 .facil-only.hidden { display: none; }
+/* no music playing: hide the volume section, show only the time controls */
+#runPanel.no-music .panel-note,
+#runPanel.no-music .vol-row { display: none; }
+#runPanel.no-music .field-label.big { margin-top: 0; }
 
 /* ===== Bottom bar ===== */
 .bottom-bar {
@@ -1026,11 +1030,18 @@ function toggleSetupPanel() {
   runPanel.hidden = true;
   if (open) positionPanelUnderPill(setupPanel);
 }
+const runPanelTitle = runPanel.querySelector(".panel-head h2");
 function toggleRunPanel() {
   const open = runPanel.hidden;
   runPanel.hidden = !open;
   setupPanel.hidden = true;
-  if (open) positionPanelUnderPill(runPanel);
+  if (open) {
+    // With no music there's no volume to control — show only the time controls.
+    const noMusic = state.track === "none";
+    runPanel.classList.toggle("no-music", noMusic);
+    runPanelTitle.textContent = noMusic ? "Timer" : "Your volume";
+    positionPanelUnderPill(runPanel);
+  }
 }
 // Anchor the panel's left edge to the timer pill so it sits directly beneath it.
 function positionPanelUnderPill(panel) {
